@@ -32,12 +32,12 @@ suspend fun sendGameState() = connections.forEach { it.sendSerialized(players) }
 data class Player(
     val name: String,
     val color: String,
-    var position: Vector2,
+    var position: Vector3,
 )
 
 @Serializable
-data class Vector2(val x: Double, val y: Double) {
-    operator fun plus(vector: Vector2) = Vector2(x + vector.x, y + vector.y)
+data class Vector3(val x: Double, val y: Double, val z: Double) {
+    operator fun plus(vector: Vector3) = Vector3(x + vector.x, y + vector.y, z + vector.z)
 }
 
 fun Application.module() {
@@ -90,25 +90,25 @@ fun Application.module() {
             call.respond(session)
         }
         webSocket("game") {
-            val player = receiveDeserialized<Player>()
-            players += player
+            @Serializable data class PlayerJoinDTO(val name: String, val color: String)
+            val dto = receiveDeserialized<PlayerJoinDTO>()
+
+            val player = Player(dto.name, dto.color, Vector3(0.0, 0.0, 0.0)).also { players += it }
             connections += this
-            println("Player joined: $player")
             sendGameState()
 
             @Serializable
-            data class PlayerMovementDTO(val deltaX: Double, val deltaY: Double)
+            data class PlayerMovementDTO(val newPosition: Vector3)
             try {
                 while (true) {
                     val movement = receiveDeserialized<PlayerMovementDTO>()
-                    player.position += Vector2(movement.deltaX, movement.deltaY)
+                    player.position = movement.newPosition
                     sendGameState()
                 }
             } catch (e: ClosedReceiveChannelException) {
                 players.removeAll { it.name == player.name }
                 connections -= this
                 sendGameState()
-                println("Closed connection for player ${player.name}")
             }
         }
     }

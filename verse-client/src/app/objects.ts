@@ -24,27 +24,39 @@ export class DefaultCube implements SceneObject {
 }
 
 export class Player implements SceneObject {
-  private movement = new THREE.Vector2(0, 0);
+  private MOVEMENT_SPEED = 0.15;
 
-  constructor(private socket: SocketService) {
+  private forward = false;
+  private backward = false;
+  private strafeLeft = false;
+  private strafeRight = false;
+
+  constructor(private socket: SocketService, private movePlayer: (movement: THREE.Vector2) => THREE.Vector3) {
     document.addEventListener("keydown", (event) => {
       switch (event.key) {
-        case "w": this.movement.setX(1); break;
-        case "a": this.movement.setY(-1); break;
-        case "s": this.movement.setX(-1); break;
-        case "d": this.movement.setY(1); break;
+        case "w": this.forward = true; break;
+        case "a": this.strafeLeft = true; break;
+        case "s": this.backward = true; break;
+        case "d": this.strafeRight = true; break;
       }
     });
     document.addEventListener("keyup", (event) => {
-      if (event.key == "w" || event.key == "s") this.movement.setX(0);
-      if (event.key == "a" || event.key == "d") this.movement.setY(0);
+      switch (event.key) {
+        case "w": this.forward = false; break;
+        case "a": this.strafeLeft = false; break;
+        case "s": this.backward = false; break;
+        case "d": this.strafeRight = false; break;
+      }
     });
   }
 
   animate() {
     if (this.socket.isConnected()) {
-      if (this.movement.x != 0 || this.movement.y != 0) {
-        this.socket.sendMessage({deltaX: this.movement.x * 0.1, deltaY: this.movement.y * 0.1});
+      if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
+        const x = (this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0);
+        const y = (this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0);
+        const resultingPosition = this.movePlayer(new THREE.Vector2(x, y));
+        this.socket.sendMessage({newPosition: resultingPosition});
       }
     }
   }
@@ -53,22 +65,17 @@ export class Player implements SceneObject {
 interface GamePlayer {
   name: string,
   color: string,
-  position: {x: number, y: number},
+  position: THREE.Vector3,
 }
 
 export class OtherPlayers implements SceneObject {
   players = new Map<string, THREE.Mesh>();
 
-  constructor(scene: Scene, socket: SocketService) {
+  constructor(scene: Scene, socket: SocketService, playerName: string) {
     socket.connect(packet => {
-      const players = packet as GamePlayer[];
-      console.log("received players");
+      const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
       for (const player of players) {
-        if (this.players.has(player.name)) {
-          const position = this.players.get(player.name)!.position;
-          position.setX(player.position.x);
-          position.setZ(player.position.y);
-        } else {
+        if (!this.players.has(player.name)) {
           const mesh = new THREE.Mesh(
             new THREE.CapsuleGeometry(0.5),
             new THREE.MeshPhysicalMaterial({color: player.color})
@@ -76,6 +83,8 @@ export class OtherPlayers implements SceneObject {
           this.players.set(player.name, mesh);
           scene.add(mesh);
         }
+        const position = this.players.get(player.name)!.position;
+        position.set(player.position.x, player.position.y + 1, player.position.z);
       }
       for (const [name, mesh] of this.players.entries()) {
         if (players.filter(player => player.name == name).length == 0) scene.remove(mesh);
@@ -83,9 +92,5 @@ export class OtherPlayers implements SceneObject {
     });
   }
 
-  animate(frame: number) {
-    for (const mesh of this.players.values()) {
-      mesh.position.setY(1 + 0.1 + 0.1 + Math.sin(frame / 30) * 0.1);
-    }
-  }
+  animate() {}
 }

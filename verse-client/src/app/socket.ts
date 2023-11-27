@@ -19,8 +19,7 @@ export class SocketService {
       this.auth.player.pipe(filter(isNonNull), first()).subscribe(playerInfo => {
         this.ws!.send(JSON.stringify({
           name: playerInfo.name,
-          color: playerInfo.color,
-          position: {x: 2, y: 0}
+          color: playerInfo.color
         }));
         this.ready = true;
       });
@@ -41,6 +40,6 @@ export class SocketService {
   }
 
   isConnected() {
-    return this.ws != null;
+    return this.ready;
   }
 }

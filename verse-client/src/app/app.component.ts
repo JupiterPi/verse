@@ -92,7 +92,7 @@ export class AppComponent implements AfterViewInit {
     light.castShadow = true;
     this.scene!.add(light);
     this.scene!.add(light.target);
-    this.scene!.add(new THREE.HemisphereLight(0xffffff, 0x000000, 0.5));
+    this.scene!.add(new THREE.HemisphereLight(0xffffff, 0x000000));
   }
 
   private animate(frame: number) {

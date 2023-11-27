@@ -69,19 +69,16 @@ interface GamePlayer {
 }
 
 export class OtherPlayers implements SceneObject {
-  players = new Map<string, THREE.Mesh>();
+  players = new Map<string, THREE.Object3D>();
 
   constructor(scene: Scene, socket: SocketService, playerName: string) {
     socket.connect(packet => {
       const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
       for (const player of players) {
         if (!this.players.has(player.name)) {
-          const mesh = new THREE.Mesh(
-            new THREE.CapsuleGeometry(0.5),
-            new THREE.MeshPhysicalMaterial({color: player.color})
-          );
-          this.players.set(player.name, mesh);
-          scene.add(mesh);
+          const object = this.constructPlayerObject(player.color);
+          this.players.set(player.name, object);
+          scene.add(object);
         }
         const position = this.players.get(player.name)!.position;
         position.set(player.position.x, player.position.y + 1, player.position.z);
@@ -90,6 +87,19 @@ export class OtherPlayers implements SceneObject {
         if (players.filter(player => player.name == name).length == 0) scene.remove(mesh);
       }
     });
+  }
+
+  private constructPlayerObject(color: string): THREE.Object3D {
+    const group = new THREE.Group();
+    group.add(new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.5),
+      new THREE.MeshPhysicalMaterial({color: "white"})
+    ));
+    group.add(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 0.2),
+      new THREE.MeshPhysicalMaterial({color})
+    ));
+    return group;
   }
 
   animate() {}

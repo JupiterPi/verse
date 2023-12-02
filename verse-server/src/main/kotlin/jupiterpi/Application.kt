@@ -13,7 +13,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.server.websocket.*
-import io.ktor.websocket.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -33,12 +32,18 @@ data class Player(
     val name: String,
     val color: String,
     var position: Vector3,
-)
+    var rotation: RadianRotation,
+) {
+    constructor(name: String, color: String) : this(name, color, Vector3(0.0, 0.0, 0.0), RadianRotation(0.0))
+}
 
 @Serializable
 data class Vector3(val x: Double, val y: Double, val z: Double) {
     operator fun plus(vector: Vector3) = Vector3(x + vector.x, y + vector.y, z + vector.z)
 }
+
+@Serializable
+data class RadianRotation(val radians: Double)
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -93,16 +98,17 @@ fun Application.module() {
             @Serializable data class PlayerJoinDTO(val name: String, val color: String)
             val dto = receiveDeserialized<PlayerJoinDTO>()
 
-            val player = Player(dto.name, dto.color, Vector3(0.0, 0.0, 0.0)).also { players += it }
+            val player = Player(dto.name, dto.color).also { players += it }
             connections += this
             sendGameState()
 
             @Serializable
-            data class PlayerMovementDTO(val newPosition: Vector3)
+            data class PlayerMovementDTO(val position: Vector3, val rotation: RadianRotation)
             try {
                 while (true) {
                     val movement = receiveDeserialized<PlayerMovementDTO>()
-                    player.position = movement.newPosition
+                    player.position = movement.position
+                    player.rotation = movement.rotation
                     sendGameState()
                 }
             } catch (e: ClosedReceiveChannelException) {

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {Scene} from "three";
 import {SocketService} from "./socket";
+import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
 
 export interface SceneObject {
   animate(frame: number): void;
@@ -31,7 +32,7 @@ export class Player implements SceneObject {
   private strafeLeft = false;
   private strafeRight = false;
 
-  constructor(private socket: SocketService, private movePlayer: (movement: THREE.Vector2) => THREE.Vector3) {
+  constructor(private socket: SocketService, private camera: THREE.Camera, private controls: PointerLockControls) {
     document.addEventListener("keydown", (event) => {
       switch (event.key) {
         case "w": this.forward = true; break;
@@ -50,13 +51,28 @@ export class Player implements SceneObject {
     });
   }
 
+  private position: THREE.Vector3 = new THREE.Vector3();
+  private rotation: number = 0;
+
   animate() {
     if (this.socket.isConnected()) {
+      let update = false;
       if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
-        const x = (this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0);
-        const y = (this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0);
-        const resultingPosition = this.movePlayer(new THREE.Vector2(x, y));
-        this.socket.sendMessage({newPosition: resultingPosition});
+        this.controls.moveForward((this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0));
+        this.controls.moveRight((this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0));
+        const position = new THREE.Vector3().copy(this.camera.position).add(new THREE.Vector3(0, -1.5, 0));
+        if (this.position != position) {
+          this.position = position;
+          update = true;
+        }
+      }
+      const rotation = this.camera.rotation.reorder("YXZ").y;
+      if (this.rotation != rotation) {
+        this.rotation = rotation;
+        update = true;
+      }
+      if (update) {
+        this.socket.sendMessage({position: this.position, rotation: {radians: this.rotation}});
       }
     }
   }
@@ -66,6 +82,7 @@ interface GamePlayer {
   name: string,
   color: string,
   position: THREE.Vector3,
+  rotation: {radians: number},
 }
 
 export class OtherPlayers implements SceneObject {
@@ -74,6 +91,7 @@ export class OtherPlayers implements SceneObject {
   constructor(scene: Scene, socket: SocketService, playerName: string) {
     socket.connect(packet => {
       const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
+      console.log(", ".concat(...players.map(player => player.rotation.radians.toString())));
       for (const player of players) {
         if (!this.players.has(player.name)) {
           const object = this.constructPlayerObject(player.color);

@@ -67,12 +67,6 @@ export class AppComponent implements AfterViewInit {
     }(0));
   }
 
-  private movePlayer(movement: THREE.Vector2): THREE.Vector3 {
-    this.controls!.moveForward(movement.x);
-    this.controls!.moveRight(movement.y);
-    return new THREE.Vector3().copy(this.camera!.position).add(new THREE.Vector3(0, -1.5, 0));
-  }
-
   private populateScene() {
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(8, 8),
@@ -82,7 +76,7 @@ export class AppComponent implements AfterViewInit {
     this.scene!.add(ground);
 
     this.objects.push(new DefaultCube(this.scene!));
-    this.objects.push(new Player(this.socketService, (movement) => this.movePlayer(movement)));
+    this.objects.push(new Player(this.socketService, this.camera!, this.controls!));
     this.objects.push(new OtherPlayers(this.scene!, this.socketService, this.playerName!));
 
     this.camera!.position.z = 5;

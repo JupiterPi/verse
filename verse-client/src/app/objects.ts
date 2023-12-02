@@ -91,15 +91,15 @@ export class OtherPlayers implements SceneObject {
   constructor(scene: Scene, socket: SocketService, playerName: string) {
     socket.connect(packet => {
       const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
-      console.log(", ".concat(...players.map(player => player.rotation.radians.toString())));
       for (const player of players) {
         if (!this.players.has(player.name)) {
           const object = this.constructPlayerObject(player.color);
           this.players.set(player.name, object);
           scene.add(object);
         }
-        const position = this.players.get(player.name)!.position;
-        position.set(player.position.x, player.position.y + 1, player.position.z);
+        const object = this.players.get(player.name)!;
+        object.position.set(player.position.x, player.position.y + 1, player.position.z);
+        object.rotation.set(0, player.rotation.radians, 0, "YXZ");
       }
       for (const [name, mesh] of this.players.entries()) {
         if (players.filter(player => player.name == name).length == 0) scene.remove(mesh);
@@ -109,14 +109,25 @@ export class OtherPlayers implements SceneObject {
 
   private constructPlayerObject(color: string): THREE.Object3D {
     const group = new THREE.Group();
+
     group.add(new THREE.Mesh(
       new THREE.CapsuleGeometry(0.5),
       new THREE.MeshPhysicalMaterial({color: "white"})
     ));
+
     group.add(new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.5, 0.2),
       new THREE.MeshPhysicalMaterial({color})
     ));
+
+    const face = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.3, 0.3, 0.05),
+      new THREE.MeshPhysicalMaterial({color})
+    );
+    face.rotateX(Math.PI * 0.5);
+    face.position.set(0, 0.6, -0.5);
+    group.add(face);
+
     return group;
   }
 

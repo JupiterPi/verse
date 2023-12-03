@@ -1,17 +1,19 @@
 import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
 import * as THREE from "three";
 import {Camera, Scene} from "three";
-import {Cursor, DefaultCube, OtherPlayers, Player, SceneObject} from "./objects";
 import {SocketService} from "./socket";
 import {HttpClient} from "@angular/common/http";
-import {environment} from "../environments/environment";
-import {AuthService} from "./auth.service";
+import {environment} from "../../environments/environment";
+import {AuthService} from "../auth.service";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
+import {DefaultCube} from "./default_cube";
+import {Cursor, Player} from "./player_controller";
+import {OtherPlayers} from "./other_players";
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  templateUrl: './ui/app.component.html',
+  styleUrls: ['./ui/app.component.css']
 })
 export class AppComponent implements AfterViewInit {
   @ViewChild("canvas") canvas?: ElementRef;
@@ -94,4 +96,8 @@ export class AppComponent implements AfterViewInit {
     this.objects.forEach(object => object.animate(frame));
     this.socketService.flushPlayerState();
   }
+}
+
+export interface SceneObject {
+  animate(frame: number): void;
 }

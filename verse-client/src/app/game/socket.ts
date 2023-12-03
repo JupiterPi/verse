@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
-import {environment} from "../environments/environment";
-import {AuthService} from "./auth.service";
+import {environment} from "../../environments/environment";
+import {AuthService} from "../auth.service";
 import {filter, first} from "rxjs";
-import {isNonNull} from "../util";
+import {isNonNull} from "../../util";
 import * as THREE from "three";
 
 export interface PlayerState {

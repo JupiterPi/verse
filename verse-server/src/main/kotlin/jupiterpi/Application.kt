@@ -31,10 +31,17 @@ suspend fun sendGameState() = connections.forEach { it.sendSerialized(players) }
 data class Player(
     val name: String,
     val color: String,
-    var position: Vector3,
-    var rotation: RadianRotation,
+    var state: PlayerState,
 ) {
-    constructor(name: String, color: String) : this(name, color, Vector3(0.0, 0.0, 0.0), RadianRotation(0.0))
+    constructor(name: String, color: String) : this(name, color, PlayerState())
+}
+@Serializable
+data class PlayerState(
+    val position: Vector3,
+    val rotation: RadianRotation,
+    val cursor: Vector3?,
+) {
+    constructor() : this(Vector3(0.0, 0.0, 0.0), RadianRotation(0.0), null)
 }
 
 @Serializable
@@ -102,13 +109,9 @@ fun Application.module() {
             connections += this
             sendGameState()
 
-            @Serializable
-            data class PlayerMovementDTO(val position: Vector3, val rotation: RadianRotation)
             try {
                 while (true) {
-                    val movement = receiveDeserialized<PlayerMovementDTO>()
-                    player.position = movement.position
-                    player.rotation = movement.rotation
+                    player.state = receiveDeserialized<PlayerState>()
                     sendGameState()
                 }
             } catch (e: ClosedReceiveChannelException) {

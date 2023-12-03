@@ -4,5 +4,5 @@
   <div id="name">
     <div>{{playerName}}</div>
   </div>
-  <div id="cursor"></div>
+  <div id="cursor" [class.active]="socket.playerState.cursor != null"></div>
 </div>

@@ -24,7 +24,7 @@ export class AppComponent implements AfterViewInit {
 
   playerName?: string;
 
-  constructor(private socketService: SocketService, http: HttpClient, auth: AuthService) {
+  constructor(public socket: SocketService, http: HttpClient, auth: AuthService) {
     while (true) {
       const name = prompt("Player name: ");
       const color = prompt("Player color: ");
@@ -83,9 +83,9 @@ export class AppComponent implements AfterViewInit {
     this.scene!.add(ground);
 
     this.objects.push(new DefaultCube(this.scene!));
-    this.objects.push(new Player(this.socketService, this.camera!, this.controls!));
-    this.objects.push(new OtherPlayers(this.scene!, this.socketService, this.playerName!));
-    this.objects.push(new Cursor(this.scene!, this.camera!, this.socketService));
+    this.objects.push(new Player(this.socket, this.camera!, this.controls!));
+    this.objects.push(new OtherPlayers(this.scene!, this.socket, this.playerName!));
+    this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
 
     this.camera!.position.z = 5;
 
@@ -99,7 +99,7 @@ export class AppComponent implements AfterViewInit {
 
   private animate(frame: number) {
     this.objects.forEach(object => object.animate(frame));
-    this.socketService.flushPlayerState();
+    this.socket.flushPlayerState();
   }
 }
 

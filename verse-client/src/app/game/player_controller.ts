@@ -47,14 +47,26 @@ export const NO_CURSOR = "[nocursor]";
 export class Cursor implements SceneObject {
   private raycaster = new THREE.Raycaster();
 
-  constructor(private scene: THREE.Scene, private camera: THREE.Camera, private socket: SocketService) {}
+  private mouseIsDown = false;
+
+  constructor(private scene: THREE.Scene, private camera: THREE.Camera, private socket: SocketService) {
+    document.addEventListener("mousedown", () => {
+      this.mouseIsDown = true;
+    });
+    document.addEventListener("mouseup", () => {
+      this.mouseIsDown = false;
+    });
+  }
 
   animate() {
-    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-    const objects = this.scene.children
-      .filter(obj => obj.name.indexOf(NO_CURSOR) == -1);
-    const intersections = this.raycaster.intersectObjects(objects);
-    const cursor = intersections.length > 0 ? intersections[0].point : null;
-    this.socket.playerState.cursor = cursor;
+    if (this.mouseIsDown) {
+      this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+      const objects = this.scene.children
+        .filter(obj => obj.name.indexOf(NO_CURSOR) == -1);
+      const intersections = this.raycaster.intersectObjects(objects);
+      this.socket.playerState.cursor = intersections.length > 0 ? intersections[0].point : null;
+    } else {
+      this.socket.playerState.cursor = null;
+    }
   }
 }

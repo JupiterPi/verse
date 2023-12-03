@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import {Scene} from "three";
-import {SocketService} from "./socket";
+import {Object3D, Scene} from "three";
+import {PlayerState, SocketService} from "./socket";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
 
 export interface SceneObject {
@@ -51,29 +51,14 @@ export class Player implements SceneObject {
     });
   }
 
-  private position: THREE.Vector3 = new THREE.Vector3();
-  private rotation: number = 0;
-
   animate() {
     if (this.socket.isConnected()) {
-      let update = false;
       if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
         this.controls.moveForward((this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0));
         this.controls.moveRight((this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0));
-        const position = new THREE.Vector3().copy(this.camera.position).add(new THREE.Vector3(0, -1.5, 0));
-        if (this.position != position) {
-          this.position = position;
-          update = true;
-        }
+        this.socket.playerState.position = new THREE.Vector3().copy(this.camera.position).add(new THREE.Vector3(0, -1.5, 0));
       }
-      const rotation = this.camera.rotation.reorder("YXZ").y;
-      if (this.rotation != rotation) {
-        this.rotation = rotation;
-        update = true;
-      }
-      if (update) {
-        this.socket.sendMessage({position: this.position, rotation: {radians: this.rotation}});
-      }
+      this.socket.playerState.rotation.radians = this.camera.rotation.reorder("YXZ").y;
     }
   }
 }
@@ -81,28 +66,52 @@ export class Player implements SceneObject {
 interface GamePlayer {
   name: string,
   color: string,
-  position: THREE.Vector3,
-  rotation: {radians: number},
+  state: PlayerState,
 }
 
 export class OtherPlayers implements SceneObject {
-  players = new Map<string, THREE.Object3D>();
+  players = new Map<string, {
+    base: THREE.Object3D,
+    cursor: THREE.Object3D,
+    cursorTrace: THREE.Object3D,
+    cursorTraceGeometry: THREE.BufferGeometry,
+  }>();
 
   constructor(scene: Scene, socket: SocketService, playerName: string) {
     socket.connect(packet => {
       const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
       for (const player of players) {
         if (!this.players.has(player.name)) {
-          const object = this.constructPlayerObject(player.color);
-          this.players.set(player.name, object);
-          scene.add(object);
+          const base = this.constructPlayerObject(player.color);
+          scene.add(base);
+
+          const cursor = this.constructCursor(player.color);
+          scene.add(cursor.tip);
+          scene.add(cursor.trace);
+
+          this.players.set(player.name, {base, cursor: cursor.tip, cursorTrace: cursor.trace, cursorTraceGeometry: cursor.traceGeometry});
         }
         const object = this.players.get(player.name)!;
-        object.position.set(player.position.x, player.position.y + 1, player.position.z);
-        object.rotation.set(0, player.rotation.radians, 0, "YXZ");
+        object.base.position.set(player.state.position.x, player.state.position.y + 1, player.state.position.z);
+        object.base.rotation.set(0, player.state.rotation.radians, 0, "YXZ");
+        if (player.state.cursor != null) {
+          object.cursor.visible = true;
+          object.cursor.position.set(player.state.cursor.x, player.state.cursor.y, player.state.cursor.z);
+          object.cursorTrace.visible = true;
+          object.cursorTraceGeometry.setFromPoints([
+            new THREE.Vector3(player.state.position.x, player.state.position.y + 1.5, player.state.position.z),
+            new THREE.Vector3(player.state.cursor.x, player.state.cursor.y, player.state.cursor.z)
+          ]);
+        } else {
+          object.cursor.visible = false;
+          object.cursorTrace.visible = false;
+        }
       }
       for (const [name, mesh] of this.players.entries()) {
-        if (players.filter(player => player.name == name).length == 0) scene.remove(mesh);
+        if (players.filter(player => player.name == name).length == 0) {
+          scene.remove(mesh.base);
+          scene.remove(mesh.cursor);
+        }
       }
     });
   }
@@ -131,5 +140,47 @@ export class OtherPlayers implements SceneObject {
     return group;
   }
 
+  private constructCursor(color: string): {tip: THREE.Object3D, trace: THREE.Object3D, traceGeometry: THREE.BufferGeometry} {
+    const tip = new THREE.Mesh(
+      new THREE.SphereGeometry(0.05),
+      new THREE.MeshPhysicalMaterial({color})
+    );
+    tip.name = NO_CURSOR;
+    const traceGeometry = new THREE.BufferGeometry();
+    const trace = new THREE.Line(
+      traceGeometry,
+      new THREE.LineBasicMaterial({color})
+    );
+    trace.name = NO_CURSOR;
+    return {tip, trace, traceGeometry};
+  }
+
   animate() {}
+}
+
+const NO_CURSOR = "[nocursor]";
+
+export class Cursor implements SceneObject {
+  private object: Object3D;
+  private raycaster = new THREE.Raycaster();
+
+  constructor(private scene: Scene, private camera: THREE.Camera, private socket: SocketService) {
+    this.object = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1),
+      new THREE.MeshPhysicalMaterial({color: "black"})
+    );
+    scene.add(this.object);
+  }
+
+  animate() {
+    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+    const objects = this.scene.children
+      .filter(obj => obj != this.object)
+      .filter(obj => obj.name.indexOf(NO_CURSOR) == -1);
+    const intersections = this.raycaster.intersectObjects(objects);
+    const cursor = intersections.length > 0 ? intersections[0].point : null;
+    this.object.visible = cursor != null;
+    if (cursor != null) this.object.position.copy(cursor);
+    this.socket.playerState.cursor = cursor;
+  }
 }

@@ -1,7 +1,7 @@
 import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
 import * as THREE from "three";
 import {Camera, Scene} from "three";
-import {DefaultCube, OtherPlayers, Player, SceneObject} from "./objects";
+import {Cursor, DefaultCube, OtherPlayers, Player, SceneObject} from "./objects";
 import {SocketService} from "./socket";
 import {HttpClient} from "@angular/common/http";
 import {environment} from "../environments/environment";
@@ -78,6 +78,7 @@ export class AppComponent implements AfterViewInit {
     this.objects.push(new DefaultCube(this.scene!));
     this.objects.push(new Player(this.socketService, this.camera!, this.controls!));
     this.objects.push(new OtherPlayers(this.scene!, this.socketService, this.playerName!));
+    this.objects.push(new Cursor(this.scene!, this.camera!, this.socketService));
 
     this.camera!.position.z = 5;
 
@@ -91,5 +92,6 @@ export class AppComponent implements AfterViewInit {
 
   private animate(frame: number) {
     this.objects.forEach(object => object.animate(frame));
+    this.socketService.flushPlayerState();
   }
 }

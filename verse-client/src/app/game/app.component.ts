@@ -12,7 +12,7 @@ import {OtherPlayers} from "./other_players";
 @Component({
   selector: 'app-root',
   templateUrl: './ui/app.component.html',
-  styleUrls: ['./ui/app.component.css']
+  styleUrls: ['./ui/app.component.scss']
 })
 export class AppComponent implements AfterViewInit {
   @ViewChild("canvas") canvas?: ElementRef;
@@ -22,12 +22,12 @@ export class AppComponent implements AfterViewInit {
 
   private objects: SceneObject[] = [];
 
-  private playerName?: string;
+  playerName?: string;
 
   constructor(private socketService: SocketService, http: HttpClient, auth: AuthService) {
     while (true) {
-      const name = "p1"; //prompt("Player name: ");
-      const color = "green"; //prompt("Player color: ");
+      const name = prompt("Player name: ");
+      const color = prompt("Player color: ");
       if (name == null || color == null) continue;
 
       http.post(`http://${environment.host}/login`, {name, color}, {responseType: "text"}).subscribe();

@@ -45,26 +45,16 @@ export class Player implements SceneObject {
 export const NO_CURSOR = "[nocursor]";
 
 export class Cursor implements SceneObject {
-  private object: THREE.Object3D;
   private raycaster = new THREE.Raycaster();
 
-  constructor(private scene: THREE.Scene, private camera: THREE.Camera, private socket: SocketService) {
-    this.object = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1),
-      new THREE.MeshPhysicalMaterial({color: "black"})
-    );
-    scene.add(this.object);
-  }
+  constructor(private scene: THREE.Scene, private camera: THREE.Camera, private socket: SocketService) {}
 
   animate() {
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
     const objects = this.scene.children
-      .filter(obj => obj != this.object)
       .filter(obj => obj.name.indexOf(NO_CURSOR) == -1);
     const intersections = this.raycaster.intersectObjects(objects);
     const cursor = intersections.length > 0 ? intersections[0].point : null;
-    this.object.visible = cursor != null;
-    if (cursor != null) this.object.position.copy(cursor);
     this.socket.playerState.cursor = cursor;
   }
 }

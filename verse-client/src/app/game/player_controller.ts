@@ -2,7 +2,6 @@ import {SceneObject} from "./app.component";
 import {SocketService} from "./socket";
 import * as THREE from "three";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
-import {Object3D, Scene} from "three";
 
 export class Player implements SceneObject {
   private MOVEMENT_SPEED = 0.15;
@@ -46,10 +45,10 @@ export class Player implements SceneObject {
 export const NO_CURSOR = "[nocursor]";
 
 export class Cursor implements SceneObject {
-  private object: Object3D;
+  private object: THREE.Object3D;
   private raycaster = new THREE.Raycaster();
 
-  constructor(private scene: Scene, private camera: THREE.Camera, private socket: SocketService) {
+  constructor(private scene: THREE.Scene, private camera: THREE.Camera, private socket: SocketService) {
     this.object = new THREE.Mesh(
       new THREE.SphereGeometry(0.1),
       new THREE.MeshPhysicalMaterial({color: "black"})

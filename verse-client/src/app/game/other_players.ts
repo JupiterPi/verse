@@ -1,7 +1,6 @@
 import {PlayerState, SocketService} from "./socket";
 import {SceneObject} from "./app.component";
 import * as THREE from "three";
-import {Scene} from "three";
 import {NO_CURSOR} from "./player_controller";
 
 interface GamePlayer {
@@ -18,7 +17,7 @@ export class OtherPlayers implements SceneObject {
     cursorTraceGeometry: THREE.BufferGeometry,
   }>();
 
-  constructor(scene: Scene, socket: SocketService, playerName: string) {
+  constructor(scene: THREE.Scene, socket: SocketService, playerName: string) {
     socket.connect(packet => {
       const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
       for (const player of players) {

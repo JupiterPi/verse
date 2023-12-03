@@ -1,11 +1,10 @@
 import * as THREE from "three";
-import {Scene} from "three";
 import {SceneObject} from "./app.component";
 
 export class DefaultCube implements SceneObject {
   private readonly cube: THREE.Mesh;
 
-  constructor(scene: Scene) {
+  constructor(scene: THREE.Scene) {
     this.cube = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
       new THREE.MeshPhysicalMaterial({color: 0x2872fd})

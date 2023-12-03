@@ -1,6 +1,5 @@
 import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
 import * as THREE from "three";
-import {Camera, Scene} from "three";
 import {SocketService} from "./socket";
 import {HttpClient} from "@angular/common/http";
 import {environment} from "../../environments/environment";
@@ -18,8 +17,8 @@ import {OtherPlayers} from "./other_players";
 export class AppComponent implements AfterViewInit {
   @ViewChild("canvas") canvas?: ElementRef;
 
-  private scene?: Scene;
-  private camera?: Camera;
+  private scene?: THREE.Scene;
+  private camera?: THREE.PerspectiveCamera;
 
   private objects: SceneObject[] = [];
 
@@ -27,8 +26,8 @@ export class AppComponent implements AfterViewInit {
 
   constructor(private socketService: SocketService, http: HttpClient, auth: AuthService) {
     while (true) {
-      const name = prompt("Player name: ");
-      const color = prompt("Player color: ");
+      const name = "p1"; //prompt("Player name: ");
+      const color = "green"; //prompt("Player color: ");
       if (name == null || color == null) continue;
 
       http.post(`http://${environment.host}/login`, {name, color}, {responseType: "text"}).subscribe();
@@ -49,15 +48,21 @@ export class AppComponent implements AfterViewInit {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000);
 
-    this.camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.y = 1.5;
     this.controls = new PointerLockControls(this.camera, canvas);
     this.controls.connect();
 
     const renderer = new THREE.WebGLRenderer({canvas});
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.BasicShadowMap;
+
+    window.addEventListener("resize", () => {
+      this.camera!.aspect = window.innerWidth / window.innerHeight;
+      this.camera!.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 
     this.populateScene();
 

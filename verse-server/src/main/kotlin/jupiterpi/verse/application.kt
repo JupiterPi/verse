@@ -9,17 +9,19 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.websocket.*
-import jupiterpi.verse.bot.botListener
+import jupiterpi.verse.bot.Bot
 import jupiterpi.verse.game.configureGame
 import kotlinx.serialization.json.Json
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import java.time.Duration
 
+lateinit var jda: JDA
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module).start(wait = false)
 
-    JDABuilder.createDefault(System.getenv("bot-token"))
-        .addEventListeners(botListener)
+    jda = JDABuilder.createDefault(System.getenv("bot-token"))
+        .addEventListeners(Bot.Listener)
         .build()
 }
 

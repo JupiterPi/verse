@@ -7,7 +7,7 @@ import java.util.*
 data class JoinCode(
     val code: String,
     val expires: Date,
-    val discordUser: Member,
+    val member: Member,
     val channel: VoiceChannel,
 )
 

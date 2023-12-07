@@ -11,6 +11,7 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.websocket.*
 import jupiterpi.verse.bot.Bot
 import jupiterpi.verse.bot.configureBotLinkRedirect
+import jupiterpi.verse.game.GameBotListener
 import jupiterpi.verse.game.configureGame
 import kotlinx.serialization.json.Json
 import net.dv8tion.jda.api.JDA
@@ -26,6 +27,7 @@ fun main() {
 
     jda = JDABuilder.createDefault(System.getenv("bot-token"))
         .addEventListeners(Bot.Listener)
+        .addEventListeners(GameBotListener)
         .build()
 }
 

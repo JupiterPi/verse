@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppComponent } from './game/app.component';
 import {HttpClientModule} from "@angular/common/http";
+import {RouterModule} from "@angular/router";
 
 @NgModule({
   declarations: [
@@ -11,6 +12,9 @@ import {HttpClientModule} from "@angular/common/http";
   imports: [
     BrowserModule,
     HttpClientModule,
+    RouterModule.forRoot([
+      {path: "join", component: AppComponent},
+    ]),
   ],
   providers: [],
   bootstrap: [AppComponent]

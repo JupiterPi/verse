@@ -1,13 +1,14 @@
 import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
 import * as THREE from "three";
 import {SocketService} from "./socket";
-import {HttpClient} from "@angular/common/http";
-import {environment} from "../../environments/environment";
 import {AuthService} from "../auth.service";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
 import {DefaultCube} from "./default_cube";
 import {Cursor, Player} from "./player_controller";
 import {OtherPlayers} from "./other_players";
+import {ActivatedRoute} from "@angular/router";
+import {filter, skip} from "rxjs";
+import {isNonNull} from "../../util";
 
 @Component({
   selector: 'app-root',
@@ -24,17 +25,17 @@ export class AppComponent implements AfterViewInit {
 
   playerName?: string;
 
-  constructor(public socket: SocketService, http: HttpClient, auth: AuthService) {
-    while (true) {
-      const name = prompt("Player name: ");
-      const color = prompt("Player color: ");
-      if (name == null || color == null) continue;
-
-      http.post(`http://${environment.host}/login`, {name, color}, {responseType: "text"}).subscribe();
-      auth.player.next({name, color});
-      this.playerName = name;
-      break;
-    }
+  constructor(
+    public socket: SocketService,
+    private route: ActivatedRoute,
+    private auth: AuthService,
+  ) {
+    this.route.queryParams.pipe(skip(1)).subscribe(params => {
+      socket.token.next(params["t"]);
+    });
+    this.auth.player.pipe(filter(isNonNull)).subscribe(playerInfo => {
+      this.playerName = playerInfo.name;
+    });
   }
 
   controls?: PointerLockControls;
@@ -84,7 +85,7 @@ export class AppComponent implements AfterViewInit {
 
     this.objects.push(new DefaultCube(this.scene!));
     this.objects.push(new Player(this.socket, this.camera!, this.controls!));
-    this.objects.push(new OtherPlayers(this.scene!, this.socket, this.playerName!));
+    this.objects.push(new OtherPlayers(this.scene!, this.socket, this.auth));
     this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
 
     this.camera!.position.z = 5;

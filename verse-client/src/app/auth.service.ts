@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import {BehaviorSubject} from "rxjs";
 
-export interface Player {
+export interface PlayerInfo {
   name: string,
   color: string,
 }
@@ -10,5 +10,5 @@ export interface Player {
   providedIn: 'root'
 })
 export class AuthService {
-  player = new BehaviorSubject<Player | null>(null);
+  player = new BehaviorSubject<PlayerInfo | null>(null);
 }

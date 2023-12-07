@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {environment} from "../../environments/environment";
-import {AuthService} from "../auth.service";
-import {filter, first} from "rxjs";
+import {AuthService, PlayerInfo} from "../auth.service";
+import {BehaviorSubject, filter} from "rxjs";
 import {isNonNull} from "../../util";
 import * as THREE from "three";
 
@@ -15,28 +15,33 @@ export interface PlayerState {
   providedIn: 'root'
 })
 export class SocketService {
+  token = new BehaviorSubject<string | null>(null);
+
   private ws?: WebSocket;
   private ready = false;
 
   constructor(private auth: AuthService) {}
 
   connect(onMessage: (packet: any) => void) {
-    this.ws = new WebSocket(`ws://${environment.host}/game`);
-    this.ws.addEventListener("open", () => {
-      this.auth.player.pipe(filter(isNonNull), first()).subscribe(playerInfo => {
-        this.ws!.send(JSON.stringify({
-          name: playerInfo.name,
-          color: playerInfo.color
-        }));
-        this.ready = true;
+    this.token.pipe(filter(isNonNull)).subscribe(token => {
+      this.ws = new WebSocket(`ws://${environment.host}/game`);
+      this.ws.addEventListener("open", () => {
+        this.ws!.send(JSON.stringify({joinCode: token}));
+        console.log(JSON.stringify({joinCode: token}));
       });
-    });
-    this.ws.addEventListener("message", (message: MessageEvent) => {
-      const packet = JSON.parse(message.data);
-      onMessage(packet);
-    });
-    this.ws.addEventListener("close", event => {
-      if (event.code != 1000) console.error("WebSocket connection closed:", event.code, event.reason);
+      this.ws.addEventListener("message", (message: MessageEvent) => {
+        if (!this.ready) {
+          const playerInfo = JSON.parse(message.data) as PlayerInfo;
+          this.auth.player.next(playerInfo);
+          this.ready = true;
+        } else {
+          const packet = JSON.parse(message.data);
+          onMessage(packet);
+        }
+      });
+      this.ws.addEventListener("close", event => {
+        if (event.code != 1000) console.error("WebSocket connection closed:", event.code, event.reason);
+      });
     });
   }
 

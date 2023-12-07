@@ -10,15 +10,19 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.websocket.*
 import jupiterpi.verse.bot.Bot
+import jupiterpi.verse.bot.configureBotLinkRedirect
 import jupiterpi.verse.game.configureGame
 import kotlinx.serialization.json.Json
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import java.time.Duration
 
+const val port = 8080
+const val hostUrl = "http://localhost:$port"
+
 lateinit var jda: JDA
 fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module).start(wait = false)
+    embeddedServer(Netty, port, module = Application::module).start(wait = false)
 
     jda = JDABuilder.createDefault(System.getenv("bot-token"))
         .addEventListeners(Bot.Listener)
@@ -52,5 +56,6 @@ fun Application.module() {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
     }
 
+    configureBotLinkRedirect()
     configureGame()
 }

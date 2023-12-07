@@ -2,6 +2,9 @@ import {PlayerState, SocketService} from "./socket";
 import {SceneObject} from "./app.component";
 import * as THREE from "three";
 import {NO_CURSOR} from "./player_controller";
+import {AuthService} from "../auth.service";
+import {isNonNull} from "../../util";
+import {filter} from "rxjs";
 
 interface GamePlayer {
   name: string,
@@ -17,9 +20,16 @@ export class OtherPlayers implements SceneObject {
     cursorTraceGeometry: THREE.BufferGeometry,
   }>();
 
-  constructor(scene: THREE.Scene, socket: SocketService, playerName: string) {
+  playerName?: string;
+
+  constructor(scene: THREE.Scene, socket: SocketService, auth: AuthService) {
+    auth.player.pipe(filter(isNonNull)).subscribe(playerInfo => {
+      this.playerName = playerInfo.name;
+    });
+
     socket.connect(packet => {
-      const players = (packet as GamePlayer[]).filter(player => player.name != playerName);
+      if (this.playerName == undefined) return;
+      const players = (packet as GamePlayer[]).filter(player => player.name != this.playerName);
       for (const player of players) {
         if (!this.players.has(player.name)) {
           const base = this.constructPlayerObject(player.color);

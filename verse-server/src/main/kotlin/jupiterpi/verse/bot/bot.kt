@@ -62,7 +62,7 @@ object Bot {
         private fun handleButtonClick(event: ButtonInteractionEvent) {
             if (event.button.id != BUTTON_JOIN_ID) return
             val code = JoinCodes.create(event.member!!, event.channel.asVoiceChannel())
-            event.reply("$hostUrl/join/$code\n(usable once, expires in 30s)")
+            event.reply("$hostUrl/join/$code\n(don't share this link with others!)")
                 .setEphemeral(true)
                 .queue()
         }

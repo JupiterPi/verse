@@ -27,7 +27,6 @@ export class SocketService {
       this.ws = new WebSocket(`ws://${environment.host}/game`);
       this.ws.addEventListener("open", () => {
         this.ws!.send(JSON.stringify({joinCode: token}));
-        console.log(JSON.stringify({joinCode: token}));
       });
       this.ws.addEventListener("message", (message: MessageEvent) => {
         if (!this.ready) {

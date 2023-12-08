@@ -60,6 +60,7 @@ fun Application.configureGame() {
             if (!joinCode.channel.members.contains(joinCode.member)) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Cannot join without being in the voice channel"))
             var game = games.find { it.channel == joinCode.channel }
             if (game == null) game = Game(joinCode.channel).also { games += it }
+            if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
 
             sendSerialized(mapOf("name" to joinCode.member.effectiveName))
             val color = listOf("red", "green", "blue", "yellow", "cyan", "magenta").first { color -> game.players.none { it.color == color } }

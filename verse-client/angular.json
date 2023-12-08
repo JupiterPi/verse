@@ -102,5 +102,7 @@
       }
     }
   },
-  "defaultProject": "verse-client"
+  "cli": {
+    "analytics": "c18d92e5-0ed4-4359-8332-b1b24f171fd9"
+  }
 }

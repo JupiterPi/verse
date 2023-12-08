@@ -1,4 +1,4 @@
-import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import * as THREE from "three";
 import {SocketService} from "./socket";
 import {AuthService} from "../auth.service";
@@ -9,6 +9,7 @@ import {OtherPlayers} from "./other_players";
 import {ActivatedRoute} from "@angular/router";
 import {filter, skip} from "rxjs";
 import {isNonNull} from "../../util";
+import {ErrorsService} from "../errors.service";
 
 @Component({
   selector: 'app-root',
@@ -29,6 +30,7 @@ export class AppComponent implements AfterViewInit {
     public socket: SocketService,
     private route: ActivatedRoute,
     private auth: AuthService,
+    private errorsService: ErrorsService,
   ) {
     this.route.queryParams.pipe(skip(1)).subscribe(params => {
       socket.token.next(params["t"]);
@@ -43,7 +45,23 @@ export class AppComponent implements AfterViewInit {
     this.controls!.lock();
   }
 
+  @ViewChild("errorDialog") errorDialog?: ElementRef<HTMLDialogElement>;
+  errorMessage = "";
+  reload() {
+    window.location.reload();
+  }
+
   ngAfterViewInit() {
+    this.errorsService.error.subscribe(error => {
+      if (error == null) {
+        this.errorMessage = "";
+        this.errorDialog!.nativeElement.close();
+      } else {
+        this.errorMessage = error;
+        this.errorDialog!.nativeElement.showModal();
+      }
+    });
+
     const canvas = this.canvas!.nativeElement as HTMLCanvasElement;
 
     this.scene = new THREE.Scene();

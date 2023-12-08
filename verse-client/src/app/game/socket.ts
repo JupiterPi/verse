@@ -4,6 +4,7 @@ import {AuthService, PlayerInfo} from "../auth.service";
 import {BehaviorSubject, filter} from "rxjs";
 import {isNonNull} from "../../util";
 import * as THREE from "three";
+import {ErrorsService} from "../errors.service";
 
 export interface PlayerState {
   position: {x: number, y: number, z: number},
@@ -20,7 +21,7 @@ export class SocketService {
   private ws?: WebSocket;
   private ready = false;
 
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService, private errorsService: ErrorsService) {}
 
   connect(onMessage: (packet: any) => void) {
     this.token.pipe(filter(isNonNull)).subscribe(token => {
@@ -39,7 +40,10 @@ export class SocketService {
         }
       });
       this.ws.addEventListener("close", event => {
-        if (event.code != 1000) console.error("WebSocket connection closed:", event.code, event.reason);
+        if (event.code != 1000) {
+          this.errorsService.error.next(event.reason);
+          console.error("WebSocket connection closed:", event.code, event.reason);
+        }
       });
     });
   }

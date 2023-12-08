@@ -6,3 +6,9 @@
   </div>
   <div id="cursor" [class.active]="socket.playerState.cursor != null"></div>
 </div>
+
+<dialog #errorDialog>
+  <div>Error</div>
+  <div>{{errorMessage}}</div>
+  <button (click)="reload()">Reload</button>
+</dialog>

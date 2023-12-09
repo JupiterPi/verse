@@ -70,7 +70,7 @@ fun Application.configureGame() {
             if (game == null) game = Game(joinCode.channel).also { games += it }
             if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
 
-            val color = listOf("green", "blue", "red", "yellow", "cyan", "magenta").first { color -> game.players.none { it.color == color } }
+            val color = listOf("#ee4349", "#435aee", "#3cd24e", "#8855ec", "#e663be", "#e79c40", "#e0f324").first { color -> game.players.none { it.color == color } }
             val player = Player(joinCode.member, this, color).also { game.players += it }
 
             @Serializable data class SelfPlayerInfoDTO(val name: String, val id: String, val color: String)

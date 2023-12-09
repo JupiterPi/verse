@@ -1,14 +1,12 @@
-import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
 import * as THREE from "three";
 import {SocketService} from "./socket";
-import {AuthService} from "../auth.service";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
 import {DefaultCube} from "./default_cube";
 import {Cursor, Player} from "./player_controller";
 import {OtherPlayers} from "./other_players";
 import {ActivatedRoute} from "@angular/router";
-import {filter, skip} from "rxjs";
-import {isNonNull} from "../../util";
+import {skip} from "rxjs";
 import {ErrorsService} from "../errors.service";
 
 @Component({
@@ -24,19 +22,14 @@ export class AppComponent implements AfterViewInit {
 
   private objects: SceneObject[] = [];
 
-  playerName?: string;
+  selfPlayerName?: string;
 
-  constructor(
-    public socket: SocketService,
-    private route: ActivatedRoute,
-    private auth: AuthService,
-    private errorsService: ErrorsService,
-  ) {
+  constructor(public socket: SocketService, private route: ActivatedRoute, private errorsService: ErrorsService) {
     this.route.queryParams.pipe(skip(1)).subscribe(params => {
-      socket.token.next(params["t"]);
+      socket.connect(params["t"]);
     });
-    this.auth.player.pipe(filter(isNonNull)).subscribe(playerInfo => {
-      this.playerName = playerInfo.name;
+    socket.getSelfPlayer().subscribe(selfPlayer => {
+      this.selfPlayerName = selfPlayer.name;
     });
   }
 
@@ -103,7 +96,7 @@ export class AppComponent implements AfterViewInit {
 
     this.objects.push(new DefaultCube(this.scene!));
     this.objects.push(new Player(this.socket, this.camera!, this.controls!));
-    this.objects.push(new OtherPlayers(this.scene!, this.socket, this.auth));
+    this.objects.push(new OtherPlayers(this.scene!, this.socket));
     this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
 
     this.camera!.position.z = 5;

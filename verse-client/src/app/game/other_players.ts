@@ -1,16 +1,7 @@
-import {PlayerState, SocketService} from "./socket";
+import {SocketService} from "./socket";
 import {SceneObject} from "./app.component";
 import * as THREE from "three";
 import {NO_CURSOR} from "./player_controller";
-import {AuthService} from "../auth.service";
-import {isNonNull} from "../../util";
-import {filter} from "rxjs";
-
-interface GamePlayer {
-  name: string,
-  color: string,
-  state: PlayerState,
-}
 
 export class OtherPlayers implements SceneObject {
   players = new Map<string, {
@@ -20,18 +11,17 @@ export class OtherPlayers implements SceneObject {
     cursorTraceGeometry: THREE.BufferGeometry,
   }>();
 
-  playerName?: string;
+  selfPlayerId?: string;
 
-  constructor(scene: THREE.Scene, socket: SocketService, auth: AuthService) {
-    auth.player.pipe(filter(isNonNull)).subscribe(playerInfo => {
-      this.playerName = playerInfo.name;
+  constructor(scene: THREE.Scene, socket: SocketService) {
+    socket.getSelfPlayer().subscribe(selfPlayer => {
+      this.selfPlayerId = selfPlayer.id;
     });
-
-    socket.connect(packet => {
-      if (this.playerName == undefined) return;
-      const players = (packet as GamePlayer[]).filter(player => player.name != this.playerName);
+    socket.getGame().subscribe(game => {
+      if (this.selfPlayerId == undefined) return;
+      const players = game.players.filter(player => player.id != this.selfPlayerId);
       for (const player of players) {
-        if (!this.players.has(player.name)) {
+        if (!this.players.has(player.id)) {
           const base = this.constructPlayerObject(player.color);
           scene.add(base);
 
@@ -39,9 +29,9 @@ export class OtherPlayers implements SceneObject {
           scene.add(cursor.tip);
           scene.add(cursor.trace);
 
-          this.players.set(player.name, {base, cursor: cursor.tip, cursorTrace: cursor.trace, cursorTraceGeometry: cursor.traceGeometry});
+          this.players.set(player.id, {base, cursor: cursor.tip, cursorTrace: cursor.trace, cursorTraceGeometry: cursor.traceGeometry});
         }
-        const object = this.players.get(player.name)!;
+        const object = this.players.get(player.id)!;
         object.base.position.set(player.state.position.x, player.state.position.y + 1, player.state.position.z);
         object.base.rotation.set(0, player.state.rotation.radians, 0, "YXZ");
         if (player.state.cursor != null) {
@@ -57,8 +47,8 @@ export class OtherPlayers implements SceneObject {
           object.cursorTrace.visible = false;
         }
       }
-      for (const [name, mesh] of this.players.entries()) {
-        if (players.filter(player => player.name == name).length == 0) {
+      for (const [id, mesh] of this.players.entries()) {
+        if (players.filter(player => player.id == id).length == 0) {
           scene.remove(mesh.base);
           scene.remove(mesh.cursor);
         }

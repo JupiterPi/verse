@@ -44,7 +44,12 @@ data class RadianRotation(val radians: Double)
 
 class Game(val channel: VoiceChannel) {
     val players = mutableListOf<Player>()
-    suspend fun sendGameState() = players.forEach { it.connection.sendSerialized(players.map { PlayerDTO(it) }) }
+    suspend fun sendGameState() {
+        @Serializable
+        data class GameStateDTO(val players: List<PlayerDTO>, val availablePlayers: List<String>)
+        val dto = GameStateDTO(players.map { PlayerDTO(it) }, channel.members.map { it.id })
+        players.forEach { it.connection.sendSerialized(dto) }
+    }
 }
 
 val games = mutableListOf<Game>()
@@ -62,9 +67,13 @@ fun Application.configureGame() {
             if (game == null) game = Game(joinCode.channel).also { games += it }
             if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
 
-            sendSerialized(mapOf("name" to joinCode.member.effectiveName))
             val color = listOf("red", "green", "blue", "yellow", "cyan", "magenta").first { color -> game.players.none { it.color == color } }
             val player = Player(joinCode.member, this, color).also { game.players += it }
+            sendSerialized(mapOf(
+                "name" to joinCode.member.effectiveName,
+                "id" to joinCode.member.id,
+                "color" to color,
+            ))
             game.sendGameState()
 
             try {

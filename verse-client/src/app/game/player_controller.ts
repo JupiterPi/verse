@@ -31,14 +31,12 @@ export class Player implements SceneObject {
   }
 
   animate() {
-    if (this.socket.isConnected()) {
-      if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
-        this.controls.moveForward((this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0));
-        this.controls.moveRight((this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0));
-        this.socket.playerState.position = new THREE.Vector3().copy(this.camera.position).add(new THREE.Vector3(0, -1.5, 0));
-      }
-      this.socket.playerState.rotation.radians = this.camera.rotation.reorder("YXZ").y;
+    if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
+      this.controls.moveForward((this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0));
+      this.controls.moveRight((this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0));
+      this.socket.playerState.position = new THREE.Vector3().copy(this.camera.position).add(new THREE.Vector3(0, -1.5, 0));
     }
+    this.socket.playerState.rotation.radians = this.camera.rotation.reorder("YXZ").y;
   }
 }
 

@@ -2,13 +2,17 @@ import {Injectable} from '@angular/core';
 import {environment} from "../../environments/environment";
 import {BehaviorSubject, filter} from "rxjs";
 import {isNonNull} from "../../util";
-import * as THREE from "three";
 import {ErrorsService} from "../errors.service";
 
 export interface SelfPlayer {
   name: string,
   id: string,
   color: string,
+}
+
+export interface InitialCamera {
+  initialPosition: {x: number, y: number, z: number},
+  initialRotation: {radians: number},
 }
 
 export interface PlayerState {
@@ -44,15 +48,16 @@ export class SocketService {
 
   constructor(private errorsService: ErrorsService) {}
 
-  connect(token: string) {
+  connect(token: string, applyInitialCamera: (initialCamera: InitialCamera) => void) {
     this.ws = new WebSocket(`ws://${environment.host}/game`);
     this.ws.addEventListener("open", () => {
       this.ws!.send(JSON.stringify({joinCode: token}));
     });
     this.ws.addEventListener("message", (message: MessageEvent) => {
       if (!this.ready) {
-        const playerInfo = JSON.parse(message.data) as SelfPlayer;
+        const playerInfo = JSON.parse(message.data) as SelfPlayer & InitialCamera;
         this.selfPlayer.next(playerInfo);
+        applyInitialCamera(playerInfo);
         this.ready = true;
       } else {
         this.game.next(JSON.parse(message.data) as Game);
@@ -73,10 +78,14 @@ export class SocketService {
     this.ws!.send(message);
   }
 
+  isConnected() {
+    return this.ready;
+  }
+
   // send
 
   playerState: PlayerState = {
-    position: new THREE.Vector3(0, 0, 0),
+    position: {x: 0, y: 0, z: 0},
     rotation: {radians: 0},
     cursor: null,
   };

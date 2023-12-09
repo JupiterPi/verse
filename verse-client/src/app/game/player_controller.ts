@@ -31,6 +31,7 @@ export class Player implements SceneObject {
   }
 
   animate() {
+    if (!this.socket.isConnected()) return
     if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
       this.controls.moveForward((this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0));
       this.controls.moveRight((this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0));

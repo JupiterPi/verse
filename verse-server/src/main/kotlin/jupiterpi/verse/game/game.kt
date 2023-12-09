@@ -4,7 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import jupiterpi.verse.JoinCodes
+import jupiterpi.verse.*
 import jupiterpi.verse.bot.Bot
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.runBlocking
@@ -42,8 +42,27 @@ data class Vector3(val x: Double, val y: Double, val z: Double) {
 @Serializable
 data class RadianRotation(val radians: Double)
 
-class Game(val channel: VoiceChannel) {
+class Game(val channel: VoiceChannel, offlinePlayers: List<PersistentPlayer> = listOf()) {
+    val offlinePlayers = offlinePlayers.toMutableList()
     val players = mutableListOf<Player>()
+
+    fun joinPlayer(member: Member, connection: DefaultWebSocketServerSession): Player {
+        val offlinePlayer = offlinePlayers.firstOrNull { it.userId == member.id }
+        if (offlinePlayer == null) {
+            val color = listOf("#ee4349", "#435aee", "#3cd24e", "#8855ec", "#e663be", "#e79c40", "#e0f324")
+                .first { color -> offlinePlayers.none { it.color == color } && players.none { it.color == color } }
+            return Player(member, connection, color).also { players += it }
+        } else {
+            offlinePlayers -= offlinePlayer
+            return Player(member, connection, member.effectiveName, offlinePlayer.color, PlayerState(offlinePlayer.position, offlinePlayer.rotation, null))
+                .also { players += it }
+        }
+    }
+
+    fun leavePlayer(player: Player) {
+        players -= player
+        offlinePlayers += PersistentPlayer(player)
+    }
 
     suspend fun sendGameState() {
         @Serializable data class OfflinePlayerDTO(val name: String, val id: String, val avatarUrl: String)
@@ -67,14 +86,13 @@ fun Application.configureGame() {
             val joinCode = JoinCodes.redeem(dto.joinCode) ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid join code"))
             if (!joinCode.channel.members.contains(joinCode.member)) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Cannot join without being in the voice channel"))
             var game = games.find { it.channel == joinCode.channel }
-            if (game == null) game = Game(joinCode.channel).also { games += it }
+            if (game == null) game = Persistence.optionallyLoadPersistentGame(joinCode.channel).also { games += it }
             if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
 
-            val color = listOf("#ee4349", "#435aee", "#3cd24e", "#8855ec", "#e663be", "#e79c40", "#e0f324").first { color -> game.players.none { it.color == color } }
-            val player = Player(joinCode.member, this, color).also { game.players += it }
+            val player = game.joinPlayer(joinCode.member, this)
 
-            @Serializable data class SelfPlayerInfoDTO(val name: String, val id: String, val color: String)
-            sendSerialized(SelfPlayerInfoDTO(joinCode.member.effectiveName, joinCode.member.id, color))
+            @Serializable data class SelfPlayerInfoDTO(val name: String, val id: String, val color: String, val initialPosition: Vector3, val initialRotation: RadianRotation)
+            sendSerialized(SelfPlayerInfoDTO(joinCode.member.effectiveName, joinCode.member.id, player.color, player.state.position, player.state.rotation))
 
             game.sendGameState()
 
@@ -84,8 +102,13 @@ fun Application.configureGame() {
                     game.sendGameState()
                 }
             } catch (e: ClosedReceiveChannelException) {
-                game.players.removeAll { it.name == player.name }
+                game.leavePlayer(player)
                 game.sendGameState()
+
+                if (game.players.isEmpty()) {
+                    Persistence.persistGame(game)
+                    games -= game
+                }
             }
         }
     }

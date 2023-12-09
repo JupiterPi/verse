@@ -24,7 +24,10 @@ export class AppComponent implements AfterViewInit {
 
   constructor(public socket: SocketService, private route: ActivatedRoute, private errorsService: ErrorsService) {
     this.route.queryParams.pipe(skip(1)).subscribe(params => {
-      socket.connect(params["t"]);
+      socket.connect(params["t"], initialCamera => {
+        this.camera!.position.set(initialCamera.initialPosition.x, initialCamera.initialPosition.y + 1.5, initialCamera.initialPosition.z);
+        this.camera!.rotation.set(0, initialCamera.initialRotation.radians, 0, "YXZ");
+      });
     });
   }
 

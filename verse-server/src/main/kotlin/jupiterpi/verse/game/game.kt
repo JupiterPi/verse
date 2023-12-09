@@ -44,10 +44,14 @@ data class RadianRotation(val radians: Double)
 
 class Game(val channel: VoiceChannel) {
     val players = mutableListOf<Player>()
+
     suspend fun sendGameState() {
-        @Serializable
-        data class GameStateDTO(val players: List<PlayerDTO>, val availablePlayers: List<String>)
-        val dto = GameStateDTO(players.map { PlayerDTO(it) }, channel.members.map { it.id })
+        @Serializable data class OfflinePlayerDTO(val name: String, val id: String, val avatarUrl: String)
+        val availablePlayers = channel.members.map { OfflinePlayerDTO(it.effectiveName, it.id, it.effectiveAvatarUrl) }
+
+        @Serializable data class GameStateDTO(val players: List<PlayerDTO>, val availablePlayers: List<OfflinePlayerDTO>)
+        val dto = GameStateDTO(players.map { PlayerDTO(it) }, availablePlayers)
+
         players.forEach { it.connection.sendSerialized(dto) }
     }
 }
@@ -57,8 +61,7 @@ val games = mutableListOf<Game>()
 fun Application.configureGame() {
     routing {
         webSocket("game") {
-            @Serializable
-            data class PlayerJoinDTO(val joinCode: String)
+            @Serializable data class PlayerJoinDTO(val joinCode: String)
             val dto = receiveDeserialized<PlayerJoinDTO>()
 
             val joinCode = JoinCodes.redeem(dto.joinCode) ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid join code"))
@@ -67,13 +70,12 @@ fun Application.configureGame() {
             if (game == null) game = Game(joinCode.channel).also { games += it }
             if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
 
-            val color = listOf("red", "green", "blue", "yellow", "cyan", "magenta").first { color -> game.players.none { it.color == color } }
+            val color = listOf("green", "blue", "red", "yellow", "cyan", "magenta").first { color -> game.players.none { it.color == color } }
             val player = Player(joinCode.member, this, color).also { game.players += it }
-            sendSerialized(mapOf(
-                "name" to joinCode.member.effectiveName,
-                "id" to joinCode.member.id,
-                "color" to color,
-            ))
+
+            @Serializable data class SelfPlayerInfoDTO(val name: String, val id: String, val color: String)
+            sendSerialized(SelfPlayerInfoDTO(joinCode.member.effectiveName, joinCode.member.id, color))
+
             game.sendGameState()
 
             try {
@@ -90,19 +92,20 @@ fun Application.configureGame() {
 }
 
 object GameBotListener : EventListener {
-    override fun onEvent(event: GenericEvent) {
+    override fun onEvent(event: GenericEvent) = runBlocking {
         if (event is GuildVoiceUpdateEvent) {
-            val channel = event.channelLeft?.asVoiceChannel() ?: return
-            if (!Bot.channels.contains(channel)) return
-            games.forEach { game ->
-                val playerLeaving = game.players.find { it.member == event.member }
-                if (playerLeaving != null) {
-                    game.players -= playerLeaving
-                    runBlocking {
-                        playerLeaving.connection.close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "You left the voice channel"))
-                    }
+            val channelLeft = event.channelLeft?.asVoiceChannel().takeIf { Bot.channels.contains(it) }
+            val channelJoined = event.channelJoined?.asVoiceChannel().takeIf { Bot.channels.contains(it) }
+            if (channelLeft == null && channelJoined == null) return@runBlocking
+            if (channelLeft != null) {
+                games.forEach { game ->
+                    val player = game.players.find { it.member == event.member } ?: return@forEach
+                    game.players -= player
+                    player.connection.close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "You left the voice channel"))
+                    game.sendGameState()
                 }
             }
+            games.filter { it.channel == channelLeft || it.channel == channelJoined }.forEach { it.sendGameState() }
         }
     }
 }

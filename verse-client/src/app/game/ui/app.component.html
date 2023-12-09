@@ -2,7 +2,7 @@
 
 <div id="gui">
   <div id="name">
-    <div>{{selfPlayerName}}</div>
+    <app-players-list></app-players-list>
   </div>
   <div id="cursor" [class.active]="socket.playerState.cursor != null"></div>
 </div>

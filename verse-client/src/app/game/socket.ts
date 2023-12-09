@@ -17,9 +17,15 @@ export interface PlayerState {
   cursor: {x: number, y: number, z: number} | null,
 }
 
+export interface OfflinePlayer {
+  name: string,
+  id: string,
+  avatarUrl: string,
+}
+
 export interface Game {
   players: GamePlayer[],
-  availablePlayers: string[],
+  availablePlayers: OfflinePlayer[],
 }
 
 export interface GamePlayer {
@@ -50,6 +56,7 @@ export class SocketService {
         this.ready = true;
       } else {
         this.game.next(JSON.parse(message.data) as Game);
+        console.log("received game");
       }
     });
     this.ws.addEventListener("close", event => {

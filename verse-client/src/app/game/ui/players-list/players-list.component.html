@@ -1,0 +1,10 @@
+<div id="container">
+  <div class="player-container" *ngFor="let player of availablePlayers">
+    <img [src]="player.avatarUrl">
+    <span [style.color]="getPlayer(player)?.color ?? '#4a4a4a'">
+      {{player.name}}
+      <ng-container *ngIf="player.id == selfPlayerId">(You)</ng-container>
+      <ng-container *ngIf="getPlayer(player) == null">(offline)</ng-container>
+    </span>
+  </div>
+</div>

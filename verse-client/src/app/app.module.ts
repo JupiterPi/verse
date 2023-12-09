@@ -4,10 +4,12 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppComponent } from './game/app.component';
 import {HttpClientModule} from "@angular/common/http";
 import {RouterModule} from "@angular/router";
+import { PlayersListComponent } from './game/ui/players-list/players-list.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    PlayersListComponent
   ],
   imports: [
     BrowserModule,

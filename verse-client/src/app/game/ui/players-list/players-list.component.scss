@@ -1,0 +1,25 @@
+#container {
+  color: black;
+
+  padding: 20px;
+  background-color: transparentize(white, 0.4);
+  border-radius: 5px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .player-container {
+    height: 30px;
+    font-weight: 500;
+
+    display: flex;
+    gap: 10px;
+    align-items: center;
+
+    img {
+      height: 30px;
+      clip-path: circle();
+    }
+  }
+}

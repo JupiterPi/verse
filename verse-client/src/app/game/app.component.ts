@@ -22,14 +22,9 @@ export class AppComponent implements AfterViewInit {
 
   private objects: SceneObject[] = [];
 
-  selfPlayerName?: string;
-
   constructor(public socket: SocketService, private route: ActivatedRoute, private errorsService: ErrorsService) {
     this.route.queryParams.pipe(skip(1)).subscribe(params => {
       socket.connect(params["t"]);
-    });
-    socket.getSelfPlayer().subscribe(selfPlayer => {
-      this.selfPlayerName = selfPlayer.name;
     });
   }
 

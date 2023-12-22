@@ -110,7 +110,7 @@ export class AppComponent implements AfterViewInit {
     this.objects.push(new DefaultCube(this.scene!));
     this.objects.push(new OtherPlayers(this.scene!, this.socket));
     this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
-    this.objects.push(new Webframes(this.scene!, this.cssScene!, player, this.camera!));
+    this.objects.push(new Webframes(this.scene!, this.cssScene!, player, this.camera!, () => this.controls!.unlock()));
 
     this.camera!.position.z = 5;
 

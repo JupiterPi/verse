@@ -15,7 +15,7 @@ export class Webframes implements SceneObject {
 
   webframes = new Map<string, Webframe>();
 
-  constructor(private scene: THREE.Scene, cssScene: THREE.Scene, player: Player, private camera: THREE.Camera) {
+  constructor(private scene: THREE.Scene, cssScene: THREE.Scene, player: Player, private camera: THREE.Camera, private exitCursor: () => void) {
     const container = document.createElement("div");
     container.setAttribute("style", "scale: 0.003; translate: -50% calc(-50% + 1.5px);");
 
@@ -30,10 +30,10 @@ export class Webframes implements SceneObject {
     input.onblur = () => player.popDisableKeyboardControls();
 
     const button = document.createElement("button");
-    button.innerText = "Go";
+    button.innerText = "->";
     button.setAttribute("style", "background-color: white; border: black;");
     button.onclick = () => {
-      console.log(input.value);
+      if (input.value == "") return;
       iframe.setAttribute("src", input.value);
       input.value = "";
     };
@@ -56,7 +56,12 @@ export class Webframes implements SceneObject {
     scene.add(box);
 
     this.webframes.set("0", {screen, box});
+
+    document.addEventListener("mousedown", () => {
+      this.clicked = true;
+    });
   }
+  clicked = false;
 
   idleBoxMaterial = new THREE.MeshPhysicalMaterial({color: "darkgrey"});
   activeBoxMaterial = new THREE.MeshPhysicalMaterial({color: 0x2872fd});
@@ -75,8 +80,12 @@ export class Webframes implements SceneObject {
         if (webframe.box.uuid == boxHit.uuid) {
           webframe.screen.visible = true;
           webframe.box.material = this.activeBoxMaterial;
+          if (this.clicked) {
+            this.exitCursor();
+          }
         }
       });
     }
+    this.clicked = false;
   }
 }

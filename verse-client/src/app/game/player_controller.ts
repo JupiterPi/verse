@@ -11,8 +11,17 @@ export class Player implements SceneObject {
   private strafeLeft = false;
   private strafeRight = false;
 
+  disableKeyboardControls = 0;
+  pushDisableKeyboardControls() {
+    this.disableKeyboardControls++;
+  }
+  popDisableKeyboardControls() {
+    this.disableKeyboardControls--;
+  }
+
   constructor(private socket: SocketService, private camera: THREE.Camera, private controls: PointerLockControls) {
     document.addEventListener("keydown", (event) => {
+      if (this.disableKeyboardControls > 0) return;
       switch (event.key) {
         case "w": this.forward = true; break;
         case "a": this.strafeLeft = true; break;
@@ -31,7 +40,7 @@ export class Player implements SceneObject {
   }
 
   animate() {
-    if (!this.socket.isConnected()) return
+    if (!this.socket.isConnected()) return;
     if (this.forward || this.backward || this.strafeLeft || this.strafeRight) {
       this.controls.moveForward((this.forward ? this.MOVEMENT_SPEED : 0) + (this.backward ? -this.MOVEMENT_SPEED : 0));
       this.controls.moveRight((this.strafeRight ? this.MOVEMENT_SPEED : 0) + (this.strafeLeft ? -this.MOVEMENT_SPEED : 0));

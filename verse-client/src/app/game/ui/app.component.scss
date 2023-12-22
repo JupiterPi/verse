@@ -1,6 +1,7 @@
 @import "../../../styles.scss";
 
-#canvas {
+.canvas {
+  position: absolute;
   border: 1px solid black;
 }
 

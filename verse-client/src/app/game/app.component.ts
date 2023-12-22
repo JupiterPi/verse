@@ -8,7 +8,7 @@ import {OtherPlayers} from "./other_players";
 import {ActivatedRoute} from "@angular/router";
 import {BehaviorSubject, skip, Subject} from "rxjs";
 import {ErrorsService} from "../errors.service";
-import {Plane} from "./plane";
+import {Webframes} from "./webframes";
 import {CSS3DRenderer} from "three/examples/jsm/renderers/CSS3DRenderer";
 
 @Component({
@@ -110,7 +110,7 @@ export class AppComponent implements AfterViewInit {
     this.objects.push(new DefaultCube(this.scene!));
     this.objects.push(new OtherPlayers(this.scene!, this.socket));
     this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
-    this.objects.push(new Plane(this.cssScene!, player));
+    this.objects.push(new Webframes(this.scene!, this.cssScene!, player, this.camera!));
 
     this.camera!.position.z = 5;
 

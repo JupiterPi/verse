@@ -51,7 +51,7 @@ object Bot {
             channels += channel
 
             channel.getHistoryFromBeginning(100).queue { history ->
-                if (history.retrievedHistory.none { it.member!!.user == jda.selfUser }) {
+                if (history.retrievedHistory.none { it.member?.user == jda.selfUser }) {
                     channel.sendMessage("Welcome to verse! Click below to join:")
                         .addActionRow(Button.success(BUTTON_JOIN_ID, "Join verse"))
                         .queue()

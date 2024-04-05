@@ -1,5 +1,5 @@
-import {SceneObject} from "./app.component";
-import {SocketService} from "./socket";
+import {SceneObject} from "../app.component";
+import {SocketService} from "../socket";
 import * as THREE from "three";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
 

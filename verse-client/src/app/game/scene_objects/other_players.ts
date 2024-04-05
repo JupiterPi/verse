@@ -1,5 +1,5 @@
-import {SocketService} from "./socket";
-import {SceneObject} from "./app.component";
+import {SocketService} from "../socket";
+import {SceneObject} from "../app.component";
 import * as THREE from "three";
 import {NO_CURSOR} from "./player_controller";
 
@@ -51,7 +51,13 @@ export class OtherPlayers implements SceneObject {
         if (players.filter(player => player.id == id).length == 0) {
           scene.remove(mesh.base);
           scene.remove(mesh.cursor);
+          scene.remove(mesh.cursorTrace);
+        } else {
+          scene.add(mesh.base);
+          scene.add(mesh.cursor);
+          scene.add(mesh.cursorTrace);
         }
+        //TODO optimize this?
       }
     });
   }

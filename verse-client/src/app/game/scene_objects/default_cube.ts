@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import {SceneObject} from "./app.component";
+import {SceneObject} from "../app.component";
 
 export class DefaultCube implements SceneObject {
   private readonly cube: THREE.Mesh;

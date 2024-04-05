@@ -1,4 +1,4 @@
-import {SceneObject} from "./app.component";
+import {SceneObject} from "../app.component";
 import * as THREE from "three";
 import {CSS3DObject} from "three/examples/jsm/renderers/CSS3DRenderer";
 import {Player} from "./player_controller";

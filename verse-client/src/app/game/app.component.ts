@@ -1,14 +1,14 @@
 import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
 import * as THREE from "three";
-import {SocketService} from "./socket";
+import {InitialCamera, SocketService} from "./socket";
 import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
-import {DefaultCube} from "./default_cube";
-import {Cursor, Player} from "./player_controller";
-import {OtherPlayers} from "./other_players";
+import {DefaultCube} from "./scene_objects/default_cube";
+import {Cursor, Player} from "./scene_objects/player_controller";
+import {OtherPlayers} from "./scene_objects/other_players";
 import {ActivatedRoute} from "@angular/router";
-import {BehaviorSubject, skip, Subject} from "rxjs";
+import {skip} from "rxjs";
 import {ErrorsService} from "../errors.service";
-import {Webframes} from "./webframes";
+import {Webframes} from "./scene_objects/webframes";
 import {CSS3DRenderer} from "three/examples/jsm/renderers/CSS3DRenderer";
 
 @Component({
@@ -17,36 +17,21 @@ import {CSS3DRenderer} from "three/examples/jsm/renderers/CSS3DRenderer";
   styleUrls: ['./ui/app.component.scss']
 })
 export class AppComponent implements AfterViewInit {
-  @ViewChild("canvas") canvas?: ElementRef;
-  @ViewChild("cssCanvas") cssCanvas?: ElementRef;
-
-  private scene?: THREE.Scene;
-  private cssScene?: THREE.Scene;
-  private camera?: THREE.PerspectiveCamera;
-
-  private objects: SceneObject[] = [];
-
   constructor(public socket: SocketService, private route: ActivatedRoute, private errorsService: ErrorsService) {
     this.route.queryParams.pipe(skip(1)).subscribe(params => {
-      socket.connect(params["t"], initialCamera => {
-        this.camera!.position.set(initialCamera.initialPosition.x, initialCamera.initialPosition.y + 1.5, initialCamera.initialPosition.z);
-        this.camera!.rotation.set(0, initialCamera.initialRotation.radians, 0, "YXZ");
-      });
+      socket.connect(params["t"], initialCamera => this.applyInitialCamera(initialCamera));
     });
   }
-
-  controls?: PointerLockControls;
-  enterCursor() {
-    this.controls!.lock();
+  ngAfterViewInit() {
+    this.initErrors();
+    this.initThreeJS();
   }
+
+  // --- errors ---
 
   @ViewChild("errorDialog") errorDialog?: ElementRef<HTMLDialogElement>;
   errorMessage = "";
-  reload() {
-    window.location.reload();
-  }
-
-  ngAfterViewInit() {
+  private initErrors() {
     this.errorsService.error.subscribe(error => {
       if (error == null) {
         this.errorMessage = "";
@@ -56,7 +41,29 @@ export class AppComponent implements AfterViewInit {
         this.errorDialog!.nativeElement.showModal();
       }
     });
+  }
 
+  reload() {
+    window.location.reload();
+  }
+
+  // --- ThreeJS ---
+
+  @ViewChild("canvas") canvas?: ElementRef;
+  @ViewChild("cssCanvas") cssCanvas?: ElementRef;
+
+  private scene?: THREE.Scene;
+  private cssScene?: THREE.Scene;
+  private camera?: THREE.PerspectiveCamera;
+
+  private objects: SceneObject[] = [];
+
+  controls?: PointerLockControls;
+  enterCursor() {
+    this.controls!.lock();
+  }
+
+  private initThreeJS() {
     const canvas = this.canvas!.nativeElement as HTMLCanvasElement;
     const cssCanvas = this.cssCanvas!.nativeElement as HTMLDivElement;
 
@@ -85,16 +92,7 @@ export class AppComponent implements AfterViewInit {
     });
 
     this.populateScene();
-
-    const scene = this.scene;
-    const cssScene = this.cssScene;
-    const camera = this.camera; const animateScene = (frame: number) => this.animate(frame);
-    (function animate(frame: number) {
-      window.requestAnimationFrame(() => animate(frame + 1));
-      animateScene(frame);
-      renderer.render(scene, camera);
-      cssRenderer.render(cssScene, camera);
-    }(0));
+    this.startAnimate(renderer, cssRenderer);
   }
 
   private populateScene() {
@@ -105,26 +103,44 @@ export class AppComponent implements AfterViewInit {
     ground.receiveShadow = true;
     this.scene!.add(ground);
 
-    const player = new Player(this.socket, this.camera!, this.controls!);
-    this.objects.push(player);
-    this.objects.push(new DefaultCube(this.scene!));
-    this.objects.push(new OtherPlayers(this.scene!, this.socket));
-    this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
-    this.objects.push(new Webframes(this.scene!, this.cssScene!, player, this.camera!, () => this.controls!.unlock()));
-
-    this.camera!.position.z = 5;
-
     const light = new THREE.DirectionalLight(0xcccccc);
     light.position.set(2, 3, 2);
     light.castShadow = true;
     this.scene!.add(light);
     this.scene!.add(light.target);
     this.scene!.add(new THREE.HemisphereLight(0xffffff, 0x000000));
+
+    this.camera!.position.z = 5;
+
+    const player = new Player(this.socket, this.camera!, this.controls!);
+    this.objects.push(player);
+    this.objects.push(new DefaultCube(this.scene!));
+    this.objects.push(new OtherPlayers(this.scene!, this.socket));
+    this.objects.push(new Cursor(this.scene!, this.camera!, this.socket));
+    this.objects.push(new Webframes(this.scene!, this.cssScene!, player, this.camera!, () => this.controls!.unlock()));
   }
 
+  private startAnimate(renderer: THREE.WebGLRenderer, cssRenderer: CSS3DRenderer) {
+    const scene = this.scene!;
+    const cssScene = this.cssScene!;
+    const camera = this.camera!;
+    const animateScene = (frame: number) => this.animate(frame);
+
+    (function animate(frame: number) {
+      window.requestAnimationFrame(() => animate(frame + 1));
+      animateScene(frame);
+      renderer.render(scene, camera);
+      cssRenderer.render(cssScene, camera);
+    }(0));
+  }
   private animate(frame: number) {
     this.objects.forEach(object => object.animate(frame));
     this.socket.flushPlayerState();
+  }
+
+  private applyInitialCamera(initialCamera: InitialCamera) {
+    this.camera!.position.set(initialCamera.initialPosition.x, initialCamera.initialPosition.y + 1.5, initialCamera.initialPosition.z);
+    this.camera!.rotation.set(0, initialCamera.initialRotation.radians, 0, "YXZ");
   }
 }
 

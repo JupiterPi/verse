@@ -61,7 +61,7 @@ export class SocketService {
         this.ready = true;
       } else {
         this.game.next(JSON.parse(message.data) as Game);
-        console.log("received game");
+        console.log("received game: ", JSON.parse(message.data));
       }
     });
     this.ws.addEventListener("close", event => {

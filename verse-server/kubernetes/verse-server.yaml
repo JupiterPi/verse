@@ -1,5 +1,5 @@
 # kubectl create secret tls jupiterpi-de-tls -cert=***** -key=*****
-# kubectl create secret generic verse-bot-token --from-literal=auth_token=*****
+# kubectl create secret generic verse-bot-token --from-literal=bot-token=*****
 
 apiVersion: apps/v1
 kind: Deployment
@@ -23,7 +23,8 @@ spec:
             - name: bot-token
               valueFrom:
                 secretKeyRef:
-                  key: verse-bot-token
+                  name: verse-bot-token
+                  key: bot-token
             - name: join-link-root
               value: "https://verse.jupiterpi.de"
 

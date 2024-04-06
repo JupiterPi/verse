@@ -1,0 +1,66 @@
+# kubectl create secret tls jupiterpi-de-tls -cert=***** -key=*****
+# kubectl create secret generic verse-bot-token --from-literal=auth_token=*****
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verse-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verse-server
+  template:
+    metadata:
+      labels:
+        app: verse-server
+    spec:
+      containers:
+        - name: verse-server
+          image: jupiterpi/verse-server
+          imagePullPolicy: Always
+          env:
+            - name: bot-token
+              valueFrom:
+                secretKeyRef:
+                  key: verse-bot-token
+            - name: join-link-root
+              value: "https://verse.jupiterpi.de"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: verse-server
+spec:
+  type: LoadBalancer
+  selector:
+    app: verse-server
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: verse-server
+spec:
+  ingressClassName: public
+  tls:
+    - hosts:
+        - verse.jupiterpi.de
+      secretName: jupiterpi-de-tls
+  rules:
+    - host: "verse.jupiterpi.de"
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: verse-server
+                port:
+                  number: 80

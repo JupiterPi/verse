@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  host: "localhost:8080",
+  apiRoot: "http://localhost:8080",
+  apiWsRoot: "ws://localhost:8080",
 };

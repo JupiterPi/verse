@@ -1,11 +1,7 @@
 package jupiterpi.verse.bot
 
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import jupiterpi.verse.Config
 import jupiterpi.verse.JoinCodes
-import jupiterpi.verse.hostUrl
 import jupiterpi.verse.jda
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
@@ -62,21 +58,12 @@ object Bot {
         private fun handleButtonClick(event: ButtonInteractionEvent) {
             if (event.button.id != BUTTON_JOIN_ID) return
             val code = JoinCodes.create(event.member!!, event.channel.asVoiceChannel())
-            event.reply("$hostUrl/join/$code\n(don't share this link with others!)")
+            event.reply("${Config.joinLink(code)}\n(don't share this link with others!)")
                 .setEphemeral(true)
                 .queue()
         }
 
         // to save state: .addFiles(FileUpload.fromData(stateStr.toByteArray(), "${channel.name}-${Date().time}.verse"))
         // to download state: .attachments[0].proxy.download().get().reader().readText()
-    }
-}
-
-fun Application.configureBotLinkRedirect() {
-    routing {
-        get("/join/{code}") {
-            val code = call.parameters["code"] ?: return@get call.respondText("Invalid code", status = HttpStatusCode.Unauthorized)
-            call.respondRedirect("http://localhost:4200/join?t=$code")
-        }
     }
 }

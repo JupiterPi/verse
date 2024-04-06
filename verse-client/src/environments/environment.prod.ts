@@ -1,4 +1,5 @@
 export const environment = {
-  production: true,
-  host: "localhost:8080",
+  production: false,
+  apiRoot: "https://verse.jupiterpi.de",
+  apiWsRoot: "wss://verse.jupiterpi.de",
 };

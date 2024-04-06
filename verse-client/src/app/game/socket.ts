@@ -49,7 +49,7 @@ export class SocketService {
   constructor(private errorsService: ErrorsService) {}
 
   connect(token: string, applyInitialCamera: (initialCamera: InitialCamera) => void) {
-    this.ws = new WebSocket(`ws://${environment.host}/game`);
+    this.ws = new WebSocket(`${environment.apiWsRoot}/api/game`);
     this.ws.addEventListener("open", () => {
       this.ws!.send(JSON.stringify({joinCode: token}));
     });
@@ -61,12 +61,11 @@ export class SocketService {
         this.ready = true;
       } else {
         this.game.next(JSON.parse(message.data) as Game);
-        console.log("received game: ", JSON.parse(message.data));
       }
     });
     this.ws.addEventListener("close", event => {
       if (event.code != 1000) {
-        this.errorsService.error.next(event.reason);
+        this.errorsService.error.next("Connection lost: " + event.reason);
         console.error("WebSocket connection closed:", event.code, event.reason);
       }
     });

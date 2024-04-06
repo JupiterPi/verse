@@ -1,6 +1,5 @@
 package jupiterpi.verse.game
 
-import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
@@ -77,39 +76,35 @@ class Game(val channel: VoiceChannel, offlinePlayers: List<PersistentPlayer> = l
 
 val games = mutableListOf<Game>()
 
-fun Application.configureGame() {
-    routing {
-        webSocket("game") {
-            @Serializable data class PlayerJoinDTO(val joinCode: String)
-            val dto = receiveDeserialized<PlayerJoinDTO>()
+fun Route.gameSocket() = webSocket {
+    @Serializable data class PlayerJoinDTO(val joinCode: String)
+    val dto = receiveDeserialized<PlayerJoinDTO>()
 
-            val joinCode = JoinCodes.redeem(dto.joinCode) ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid join code"))
-            if (!joinCode.channel.members.contains(joinCode.member)) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Cannot join without being in the voice channel"))
-            var game = games.find { it.channel == joinCode.channel }
-            if (game == null) game = Persistence.optionallyLoadPersistentGame(joinCode.channel).also { games += it }
-            if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
+    val joinCode = JoinCodes.redeem(dto.joinCode) ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid join code"))
+    if (!joinCode.channel.members.contains(joinCode.member)) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Cannot join without being in the voice channel"))
+    var game = games.find { it.channel == joinCode.channel }
+    if (game == null) game = Persistence.optionallyLoadPersistentGame(joinCode.channel).also { games += it }
+    if (game.players.any { it.member == joinCode.member }) return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Already joined in another tab"))
 
-            val player = game.joinPlayer(joinCode.member, this)
+    val player = game.joinPlayer(joinCode.member, this)
 
-            @Serializable data class SelfPlayerInfoDTO(val name: String, val id: String, val color: String, val initialPosition: Vector3, val initialRotation: RadianRotation)
-            sendSerialized(SelfPlayerInfoDTO(joinCode.member.effectiveName, joinCode.member.id, player.color, player.state.position, player.state.rotation))
+    @Serializable data class SelfPlayerInfoDTO(val name: String, val id: String, val color: String, val initialPosition: Vector3, val initialRotation: RadianRotation)
+    sendSerialized(SelfPlayerInfoDTO(joinCode.member.effectiveName, joinCode.member.id, player.color, player.state.position, player.state.rotation))
 
+    game.sendGameState()
+
+    try {
+        while (true) {
+            player.state = receiveDeserialized<PlayerState>()
             game.sendGameState()
+        }
+    } catch (e: ClosedReceiveChannelException) {
+        game.leavePlayer(player)
+        game.sendGameState()
 
-            try {
-                while (true) {
-                    player.state = receiveDeserialized<PlayerState>()
-                    game.sendGameState()
-                }
-            } catch (e: ClosedReceiveChannelException) {
-                game.leavePlayer(player)
-                game.sendGameState()
-
-                if (game.players.isEmpty()) {
-                    Persistence.persistGame(game)
-                    games -= game
-                }
-            }
+        if (game.players.isEmpty()) {
+            Persistence.persistGame(game)
+            games -= game
         }
     }
 }
